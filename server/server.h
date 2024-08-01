@@ -1,4 +1,4 @@
-#ifndef SERVER_H
-#define SERVER_H
+#ifndef _SERVER_H
+#define _SERVER_H
 
-#endif /* ifndef SERVER_H */
+#endif /* ifndef _SERVER_H */
