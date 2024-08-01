@@ -3,13 +3,13 @@
 
 #include <stdlib.h>
 
-typedef struct file_buffer {
+typedef struct FileBuffer {
     char *file_content;
-    char *mime_type;
+    const char *mime_type;
     size_t size;
-} file_buffer;
+} FileBuffer;
 
-file_buffer* read_file(char*);
-void free_buffer(file_buffer*);
+FileBuffer* read_file(char* file_path);
+void free_buffer(FileBuffer* file_buff);
 
 #endif /* _FILE_OPS_H */
