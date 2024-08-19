@@ -78,13 +78,13 @@ char *find_start_of_body(char *buffer) {
   char *start;
 
   if ((start = strstr(buffer, "\r\n\r\n")) != NULL) {
-    return start + 2;
+    return start + 4;
   } else if ((start = strstr(buffer, "\n\n")) != NULL) {
     return start + 2;
   } else if ((start = strstr(buffer, "\r\r")) != NULL) {
     return start + 2;
   } else {
-    return start;
+    return NULL;
   }
 }
 
