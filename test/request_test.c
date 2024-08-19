@@ -18,8 +18,12 @@ int main() {
       "Accept-Encoding: gzip, deflate, br\r\n"
       "\r\n";
 
-  printf("Dummy data: %s\n", dummy_request_without_body);
   Request *req = init_request(dummy_request_without_body, 1024);
+  printf("Request url: %s\n", req->url);
+  printf("Request type: %u\n", req->type);
+  printf("Request content: %s\n", req->content);
+  printf("Request http-version: %s\n", req->http_version);
+  printf("Request content-length: %u\n", req->content_length);
   repr(req->req_data);
   free_request(req);
 
@@ -28,7 +32,7 @@ int main() {
       "Host: www.example.com\r\n"
       "Connection: keep-alive\r\n"
       "Content-Type: application/x-www-form-urlencoded\r\n"
-      "Content-Length: 29\r\n"
+      "Content-Length: 32\r\n"
       "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
       "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.82 "
       "Safari/537.36\r\n"
@@ -38,7 +42,6 @@ int main() {
       "\r\n"
       "name=John+Doe&age=30&country=USA";
 
-  printf("Dummy data: %s\n", dummy_request_with_body);
   req = init_request(dummy_request_with_body, 1024);
 
   printf("Request url: %s\n", req->url);
@@ -47,10 +50,7 @@ int main() {
   printf("Request http-version: %s\n", req->http_version);
   printf("Request content-length: %u\n", req->content_length);
 
-  printf("\n\nBuffer: %s\n\n", dummy_request_with_body);
-
   repr(req->req_data);
-
   free_request(req);
 
   return EXIT_SUCCESS;
