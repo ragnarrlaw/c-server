@@ -13,4 +13,6 @@ test_dict:
 test_request:
 	@gcc -o ./bin/c_test.out ./test/request_test.c ./request/request.h ./request/request.c ./kv_store/dictionary.h ./kv_store/dictionary.c && ./bin/c_test.out
 
+test_queue:
+	@gcc -o ./bin/d_test.out ./test/queue_test.c ./queue/queue.h ./queue/queue.c && ./bin/d_test.out
 
