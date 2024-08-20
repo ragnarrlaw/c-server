@@ -17,9 +17,11 @@
 
 #define PORT "8080"
 #define BACKLOG 10
+#define NUM_THREADS 20
 
 void *get_in_addr(struct sockaddr *);
 void *handle_client(void *);
+void *init_thread_pool(int);
 
 void run_server() {
 
@@ -74,7 +76,7 @@ void run_server() {
     exit(EXIT_FAILURE);
   }
 
-  printf(">>>> Server: listening...\n");
+  printf(">>>> server: listening...\n");
 
   while (1) {
     sin_size = sizeof their_addr;
@@ -86,7 +88,7 @@ void run_server() {
 
     inet_ntop(their_addr.ss_family, get_in_addr((struct sockaddr *)&their_addr),
               s, sizeof s);
-    printf(">>>> Server: client connection from %s\n", s);
+    printf(">>>> server: client connection from %s\n", s);
 
     // implement the handling function using pthread
     pthread_t thread;
@@ -103,7 +105,7 @@ void *get_in_addr(struct sockaddr *sa) {
 }
 
 void *handle_client(void *data) {
-  printf(">>>> Handling client request...\n");
+  printf(">>>> handling client request...\n");
 
   return NULL;
 }
