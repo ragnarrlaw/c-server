@@ -1,30 +1,33 @@
-#include "dictionary.h"
 #include <stdio.h>
-#include <string.h>
 #include <stdlib.h>
+#include <string.h>
+
+#include "dictionary.h"
 
 /**
  * Hash function for hashing the keys
-*/
+ */
 unsigned int hash(const char *key) {
   unsigned int hash = 0;
-  while (*key) hash = (hash << 5) + *key++;
+  while (*key)
+    hash = (hash << 5) + *key++;
   return hash % HASH_TABLE_SIZE;
 }
 
 /**
  * Initialize a Dictionary with HASH_TABLE_SIZE number of
  * hash key capacity
-*/
-Dictionary* init_dictionary() {
+ */
+Dictionary *init_dictionary() {
   Dictionary *d = (Dictionary *)malloc(sizeof(Dictionary));
-  for (int i = 0; i < HASH_TABLE_SIZE; i++) d->buckets[i] = NULL;
+  for (int i = 0; i < HASH_TABLE_SIZE; i++)
+    d->buckets[i] = NULL;
   return d;
 }
 
 /**
  * Insert a given key & value pair to the dictionary. On failure returns false
-*/
+ */
 bool insert_kv(Dictionary *d, const char *key, const char *value) {
   unsigned int index = hash(key);
   KVEntry *kv_pair = malloc(sizeof(KVEntry));
@@ -42,7 +45,7 @@ bool insert_kv(Dictionary *d, const char *key, const char *value) {
  * Search for a give key in dictionary
  * If the key is not found then NULL is returned,
  * otherwise the key is returned
-*/
+ */
 const char *search_dict(Dictionary *d, char *key) {
   unsigned int index = hash(key);
   KVEntry *entry = d->buckets[index];
@@ -56,7 +59,8 @@ const char *search_dict(Dictionary *d, char *key) {
 
 void repr(Dictionary *d) {
   printf("Stored Key Value data:\n");
-  printf("------------------------------------------------------------------\n");
+  printf(
+      "------------------------------------------------------------------\n");
   for (int i = 0; i < HASH_TABLE_SIZE; i++) {
     KVEntry *entry = d->buckets[i];
     while (entry != NULL) {
@@ -64,18 +68,19 @@ void repr(Dictionary *d) {
       entry = entry->next;
     }
   }
-  printf("------------------------------------------------------------------\n");
+  printf(
+      "------------------------------------------------------------------\n");
 }
 
 /**
  * This function assumes that the dictionary taken is
  * initialized using the init_dictionary function and
  * tries to deallocate the dictionary itself.
-*/
+ */
 void free_dict(Dictionary *d) {
   for (int i = 0; i < HASH_TABLE_SIZE; i++) {
     KVEntry *entry = d->buckets[i];
-    while(entry != NULL) {
+    while (entry != NULL) {
       KVEntry *previous = entry;
       entry = entry->next;
       free(previous->key);
@@ -86,4 +91,3 @@ void free_dict(Dictionary *d) {
   free(d);
   d = NULL;
 }
-
