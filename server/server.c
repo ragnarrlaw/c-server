@@ -1,9 +1,9 @@
 #include <arpa/inet.h>
-#include <errno.h>
 #include <netdb.h>
 #include <netinet/in.h>
 #include <pthread.h>
 #include <signal.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -12,16 +12,29 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
-#include "../request/request.h"
+#include "../queue/queue.h"
+#include "client_handler.h"
 #include "server.h"
 
 #define PORT "8080"
 #define BACKLOG 10
 #define NUM_THREADS 20
 
+typedef struct Work {
+  Queue *q;
+  pthread_mutex_t *mutex;
+  pthread_cond_t *cond_var;
+} Work;
+
 void *get_in_addr(struct sockaddr *);
-void *handle_client(void *);
-void *init_thread_pool(int);
+pthread_t **init_thread_pool(size_t, Work *);
+void *thread_work(void *);
+
+
+void repr_sock(void *data) {
+  if (data)
+    printf("%d, ", (*(int *)data));
+}
 
 void run_server() {
 
@@ -76,13 +89,32 @@ void run_server() {
     exit(EXIT_FAILURE);
   }
 
+  Queue *q = new_queue(10);
+  if (q == NULL) {
+    perror(">>>> work buffer failed; closing socket...");
+    close(sockfd);
+    exit(EXIT_FAILURE);
+  }
+  pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+  pthread_cond_t cond_var = PTHREAD_COND_INITIALIZER;
+
+  Work w = {q, &mutex, &cond_var};
+
+  pthread_t **t = init_thread_pool(2, &w);
+  if (t == NULL) {
+    close(sockfd);
+    free_queue(q);
+    perror(">>>> thread pool failure; closing socket...");
+    exit(EXIT_FAILURE);
+  }
+
   printf(">>>> server: listening...\n");
 
   while (1) {
     sin_size = sizeof their_addr;
     new_fd = accept(sockfd, (struct sockaddr *)&their_addr, &sin_size);
     if (new_fd == -1) {
-      perror("accept");
+      perror(">>>> server: accept connection failed");
       continue;
     }
 
@@ -90,8 +122,11 @@ void run_server() {
               s, sizeof s);
     printf(">>>> server: client connection from %s\n", s);
 
-    // implement the handling function using pthread
-    pthread_t thread;
+    pthread_mutex_lock(&mutex);
+    int *sock_m = (int *)malloc(sizeof(int));
+    *sock_m = new_fd;
+    if (enqueue(q, sock_m)) { pthread_cond_signal(&cond_var); }
+    pthread_mutex_unlock(&mutex);
   }
 }
 
@@ -104,8 +139,47 @@ void *get_in_addr(struct sockaddr *sa) {
   return &(((struct sockaddr_in6 *)sa)->sin6_addr);
 }
 
-void *handle_client(void *data) {
-  printf(">>>> handling client request...\n");
+pthread_t **init_thread_pool(size_t num_threads, Work *w) {
+  pthread_t **threads = (pthread_t **)malloc(sizeof(pthread_t *) * num_threads);
+  if (threads == NULL) {
+    perror(">>>> thread pool creation error");
+    return NULL;
+  } else {
+    for (int i = 0; i < num_threads; i++) {
+      threads[i] = (pthread_t *)malloc(sizeof(pthread_t));
+      if (threads[i] == NULL) {
+        perror(">>>> thread creation error");
+        for (int j = 0; j < i; j++) {
+          free(threads[j]);
+        }
+        free(threads);
+        return NULL;
+      }
+      if (pthread_create(threads[i], NULL, thread_work, (void *)w) != 0) {
+        perror(">>>> pthread_create error");
+        for (int j = 0; j < i; j++) {
+          free(threads[j]);
+        }
+        free(threads[i]);
+        free(threads);
+        return NULL;
+      }
+    }
+    return threads;
+  }
+}
 
+void *thread_work(void *args) {
+  Work *w = (Work *)args;
+  while (true) {
+    pthread_mutex_lock(w->mutex);
+    if (!is_empty(w->q)) {
+      client_handler(dequeue(w->q));
+    } else {
+      pthread_cond_wait(w->cond_var, w->mutex);
+    }
+    pthread_mutex_unlock(w->mutex);
+  }
+  free(w);
   return NULL;
 }
