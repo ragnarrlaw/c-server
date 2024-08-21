@@ -1,3 +1,3 @@
 # Web Server Implemented Using C
 
-Multi-threaded server wil loads of issues.
+Multi-threaded server with loads of issues.
