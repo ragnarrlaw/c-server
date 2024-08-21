@@ -2,7 +2,6 @@
 #include <netdb.h>
 #include <netinet/in.h>
 #include <pthread.h>
-#include <signal.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -30,7 +29,6 @@ void *get_in_addr(struct sockaddr *);
 pthread_t **init_thread_pool(size_t, Work *);
 void *thread_work(void *);
 
-
 void repr_sock(void *data) {
   if (data)
     printf("%d, ", (*(int *)data));
@@ -42,7 +40,6 @@ void run_server() {
   struct addrinfo hints, *servinfo, *p;
   struct sockaddr_storage their_addr; // connector's address information
   socklen_t sin_size;
-  struct sigaction sa;
   int yes = 1;
   char s[INET6_ADDRSTRLEN];
   int rv;
@@ -125,7 +122,9 @@ void run_server() {
     pthread_mutex_lock(&mutex);
     int *sock_m = (int *)malloc(sizeof(int));
     *sock_m = new_fd;
-    if (enqueue(q, sock_m)) { pthread_cond_signal(&cond_var); }
+    if (enqueue(q, sock_m)) {
+      pthread_cond_signal(&cond_var);
+    }
     pthread_mutex_unlock(&mutex);
   }
 }
