@@ -13,6 +13,29 @@ const char *get_status_message(int code);
 const char *get_file_extension(const char *filename);
 const char *get_file_mime_type(const char *filename);
 
+char *not_found = "<!DOCTYPE html><html lang=\"en\"><head>"
+                  "<meta charset = \"UTF-8\"/>"
+                  "<meta name = \"viewport\" content = \"width=device-width, initial-scale=1.0\"/>"
+                  "<title> Page Not Found </title> </head><body><p><b>"
+                  "404</b> </p><hr/><p><b>Page Not Found</b></p>"
+                  "</body></html>";
+
+char *internal_server_error =
+    "<!DOCTYPE html><html lang = \"en\"><head>"
+    "<meta charset = \"UTF-8\" />"
+    "<meta name = \"viewport\" content = "
+    "\"width=device-width, initial-scale=1.0\" />"
+    "<title> Internal Server Error</title></head>"
+    "<body><p><b> 500 </b> </p><hr /><p> <b> "
+    "Internal Server Error</b></p></body></html>";
+
+char *bad_request = "<!DOCTYPE html><html lang = \"en\"><head>"
+                    "<meta charset = \"UTF-8\"/>"
+                    "<meta name = \"viewport\" content = \"width=device-width, initial-scale=1.0\" />"
+                    "<title>Bad Request</title></head>"
+                    "<body><p><b>400</b></p><hr/><p><b> "
+                    "Bad Request</b></p></body></html>";
+
 void send_file_response(int cli_sock, const char *file_path,
                         const char *headers) {
   char *buf, *tmp_buf;
@@ -22,7 +45,8 @@ void send_file_response(int cli_sock, const char *file_path,
   // Check if the file exists
   if (stat(file_path, &s) == -1) {
     perror(">>>> stat error during file info retrieval");
-    send_response(cli_sock, 404, NULL, NULL, 0, NULL);
+    send_response(cli_sock, NOT_FOUND, "text/html", not_found,
+                  strlen(not_found), NULL);
     return;
   }
 
@@ -32,7 +56,8 @@ void send_file_response(int cli_sock, const char *file_path,
     snprintf(index_path, sizeof(index_path), "%s/index.html", file_path);
     if (stat(index_path, &s) == -1) {
       perror(">>>> index.html not found in directory");
-      send_response(cli_sock, 400, NULL, NULL, 0, NULL);
+      send_response(cli_sock, BAD_REQUEST, "text/html", bad_request,
+                    strlen(bad_request), NULL);
       return;
     }
     file_path = index_path;
@@ -42,12 +67,14 @@ void send_file_response(int cli_sock, const char *file_path,
     char real_path[PATH_MAX];
     if (realpath(file_path, real_path) == NULL) {
       perror(">>>> realpath error");
-      send_response(cli_sock, 400, NULL, NULL, 0, NULL);
+      send_response(cli_sock, BAD_REQUEST, "text/html", bad_request,
+                    strlen(bad_request), NULL);
       return;
     }
     if (stat(real_path, &s) == -1) {
       perror(">>>> stat error during symlink resolution");
-      send_response(cli_sock, 404, NULL, NULL, 0, NULL);
+      send_response(cli_sock, NOT_FOUND, "text/html", not_found,
+                    strlen(not_found), NULL);
       return;
     }
     if (S_ISDIR(s.st_mode)) {
@@ -55,7 +82,8 @@ void send_file_response(int cli_sock, const char *file_path,
       snprintf(index_path, sizeof(index_path), "%s/index.html", real_path);
       if (stat(index_path, &s) == -1) {
         perror(">>>> index.html not found in symlinked directory");
-        send_response(cli_sock, 400, NULL, NULL, 0, NULL);
+        send_response(cli_sock, BAD_REQUEST, "text/html", bad_request,
+                      strlen(bad_request), NULL);
         return;
       }
       file_path = index_path;
@@ -66,7 +94,8 @@ void send_file_response(int cli_sock, const char *file_path,
 
   if (!S_ISREG(s.st_mode)) {
     perror(">>>> not a regular file");
-    send_response(cli_sock, 400, NULL, NULL, 0, NULL);
+    send_response(cli_sock, BAD_REQUEST, "text/html", bad_request,
+                  strlen(bad_request), NULL);
     return;
   }
 
@@ -78,7 +107,8 @@ void send_file_response(int cli_sock, const char *file_path,
   FILE *fd = fopen(file_path, "rb"); // read as binary
   if (fd == NULL) {
     perror(">>>> file open error");
-    send_response(cli_sock, 500, NULL, NULL, 0, NULL);
+    send_response(cli_sock, INTERNAL_SERVER_ERROR, "text/html",
+                  internal_server_error, strlen(internal_server_error), NULL);
     return;
   }
 
@@ -88,7 +118,8 @@ void send_file_response(int cli_sock, const char *file_path,
     if (buf == NULL) {
       fclose(fd);
       perror(">>>> file buffer allocation error");
-      send_response(cli_sock, 500, NULL, NULL, 0, NULL);
+      send_response(cli_sock, INTERNAL_SERVER_ERROR, "text/html",
+                    internal_server_error, strlen(internal_server_error), NULL);
       return;
     }
 
@@ -109,7 +140,8 @@ void send_file_response(int cli_sock, const char *file_path,
         fclose(fd);
         perror(">>>> file read error");
         send(cli_sock, "0\r\n\r\n", 5, 0); // end chunked transfer encoding
-        send_response(cli_sock, 500, NULL, NULL, 0,
+        send_response(cli_sock, INTERNAL_SERVER_ERROR, "text/html",
+                      internal_server_error, strlen(internal_server_error),
                       NULL); // send error response
         return;
       }
@@ -133,7 +165,8 @@ void send_file_response(int cli_sock, const char *file_path,
     if (buf == NULL) {
       fclose(fd);
       perror(">>>> file buffer allocation error");
-      send_response(cli_sock, 500, NULL, NULL, 0, NULL);
+      send_response(cli_sock, INTERNAL_SERVER_ERROR, "text/html",
+                    internal_server_error, strlen(internal_server_error), NULL);
       return;
     } else {
       while ((bytes_read = fread(tmp_buf, 1, bytes_remaining, fd)) != 0 &&
@@ -142,14 +175,16 @@ void send_file_response(int cli_sock, const char *file_path,
           free(buf);
           fclose(fd);
           perror(">>>> file read error");
-          send_response(cli_sock, 500, NULL, NULL, 0, NULL);
+          send_response(cli_sock, INTERNAL_SERVER_ERROR, "text/html",
+                        internal_server_error, strlen(internal_server_error),
+                        NULL);
           return;
         }
         bytes_remaining -= bytes_read;
         total_read += bytes_read;
         tmp_buf += bytes_read;
       }
-      send_response(cli_sock, 200, get_file_mime_type(file_path), buf,
+      send_response(cli_sock, OK, get_file_mime_type(file_path), buf,
                     total_read, NULL);
       free(buf);
       fclose(fd);
