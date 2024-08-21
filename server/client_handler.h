@@ -2,13 +2,9 @@
 #define _CLIENT_HANDLER
 
 #include <sys/socket.h>
-#include "../request/request.h"
 
-typedef struct thread_args_t {
-    int client_sock;
-    Request *request;
-} thread_args_t;
+#define BUFFER_SIZE 1024
 
-void *handler_client(void *);
+void client_handler(void *);
 
 #endif // !_CLIENT_HANDLER
