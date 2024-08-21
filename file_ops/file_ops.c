@@ -49,7 +49,7 @@ FileBuffer *read_file(char *file_path) {
     FileBuffer *fb = (FileBuffer *)malloc(sizeof(FileBuffer));
     fb->size = total_read;
     fb->file_content = buf;
-    fb->mime_type = get_file_mime_type(buf, total_read);
+    fb->mime_type = get_file_mime_type(buf);
 
     fclose(fd);
     return fb;
