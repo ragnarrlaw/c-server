@@ -1,11 +1,18 @@
 #include "client_handler.h"
 #include "../request/request.h"
-#include <bits/types/struct_iovec.h>
+#include "../response/response.h"
+#include <linux/limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/socket.h>
+#include <sys/stat.h>
 #include <unistd.h>
+
+#define DOCUMENT_ROOT                                                          \
+  "./public" // bit of a pickle here, the file path is taken from the executing
+             // dir not the code containing dir, because that is how realpath()
+             // works
 
 void client_handler(void *args) {
 
@@ -16,7 +23,6 @@ void client_handler(void *args) {
   char buffer[BUFFER_SIZE];
   size_t recv_bytes;
 
-  // TODO: HANDLE PARTIAL READS
   recv_bytes = recv(cli_sock, buffer, BUFFER_SIZE - 1, 0);
 
   if (recv_bytes < 0) {
@@ -25,15 +31,12 @@ void client_handler(void *args) {
   } else {
     buffer[BUFFER_SIZE - 1] = '\0'; // null terminate the buffer
     Request *request = init_request(buffer, BUFFER_SIZE); // create the request
-    printf(">>>> client requested - %s", request->url);
+    printf(">>>> client requested - %s\n", request->url);
 
-    const char *response = "HTTP/1.1 200 OK\r\n"
-                           "Content-Type: text/html\r\n"
-                           "Content-Length: 13\r\n"
-                           "\r\n"
-                           "Hello, world!";
-    if (send(cli_sock, response, strlen(response), 0) == -1)
-      perror(">>>> send error");
+    char req_path[PATH_MAX];
+    snprintf(req_path, PATH_MAX, "%s/%s", DOCUMENT_ROOT, request->url);
+
+    send_file_response(cli_sock, req_path, NULL);
 
     free_request(request);
   }
