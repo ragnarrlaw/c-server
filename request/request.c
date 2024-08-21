@@ -20,7 +20,6 @@ Request *init_request(char *buffer, unsigned int length) {
 
   char *req_body_start = find_start_of_body(buffer);
 
-  char *split_req_line_save_ptr;
   char *split_line_save_ptr;
   char *split_param_save_ptr;
 
