@@ -36,8 +36,7 @@ char *bad_request = "<!DOCTYPE html><html lang = \"en\"><head>"
                     "<body><p><b>400</b></p><hr/><p><b> "
                     "Bad Request</b></p></body></html>";
 
-void send_file_response(int cli_sock, const char *file_path,
-                        const char *headers) {
+void send_file_response(int cli_sock, const char *file_path, const char *headers) {
   char *buf, *tmp_buf;
   struct stat s;
   size_t file_size, bytes_read, bytes_remaining, total_read = 0;
@@ -45,8 +44,7 @@ void send_file_response(int cli_sock, const char *file_path,
   // Check if the file exists
   if (stat(file_path, &s) == -1) {
     perror(">>>> stat error during file info retrieval");
-    send_response(cli_sock, NOT_FOUND, "text/html", not_found,
-                  strlen(not_found), NULL);
+    send_response(cli_sock, NOT_FOUND, "text/html", not_found, strlen(not_found), NULL);
     return;
   }
 
@@ -56,8 +54,7 @@ void send_file_response(int cli_sock, const char *file_path,
     snprintf(index_path, sizeof(index_path), "%s/index.html", file_path);
     if (stat(index_path, &s) == -1) {
       perror(">>>> index.html not found in directory");
-      send_response(cli_sock, BAD_REQUEST, "text/html", bad_request,
-                    strlen(bad_request), NULL);
+      send_response(cli_sock, BAD_REQUEST, "text/html", bad_request, strlen(bad_request), NULL);
       return;
     }
     file_path = index_path;
@@ -67,14 +64,12 @@ void send_file_response(int cli_sock, const char *file_path,
     char real_path[PATH_MAX];
     if (realpath(file_path, real_path) == NULL) {
       perror(">>>> realpath error");
-      send_response(cli_sock, BAD_REQUEST, "text/html", bad_request,
-                    strlen(bad_request), NULL);
+      send_response(cli_sock, BAD_REQUEST, "text/html", bad_request, strlen(bad_request), NULL);
       return;
     }
     if (stat(real_path, &s) == -1) {
       perror(">>>> stat error during symlink resolution");
-      send_response(cli_sock, NOT_FOUND, "text/html", not_found,
-                    strlen(not_found), NULL);
+      send_response(cli_sock, NOT_FOUND, "text/html", not_found, strlen(not_found), NULL);
       return;
     }
     if (S_ISDIR(s.st_mode)) {
@@ -82,8 +77,7 @@ void send_file_response(int cli_sock, const char *file_path,
       snprintf(index_path, sizeof(index_path), "%s/index.html", real_path);
       if (stat(index_path, &s) == -1) {
         perror(">>>> index.html not found in symlinked directory");
-        send_response(cli_sock, BAD_REQUEST, "text/html", bad_request,
-                      strlen(bad_request), NULL);
+        send_response(cli_sock, BAD_REQUEST, "text/html", bad_request, strlen(bad_request), NULL);
         return;
       }
       file_path = index_path;
@@ -94,8 +88,7 @@ void send_file_response(int cli_sock, const char *file_path,
 
   if (!S_ISREG(s.st_mode)) {
     perror(">>>> not a regular file");
-    send_response(cli_sock, BAD_REQUEST, "text/html", bad_request,
-                  strlen(bad_request), NULL);
+    send_response(cli_sock, BAD_REQUEST, "text/html", bad_request, strlen(bad_request), NULL);
     return;
   }
 
@@ -107,8 +100,7 @@ void send_file_response(int cli_sock, const char *file_path,
   FILE *fd = fopen(file_path, "rb"); // read as binary
   if (fd == NULL) {
     perror(">>>> file open error");
-    send_response(cli_sock, INTERNAL_SERVER_ERROR, "text/html",
-                  internal_server_error, strlen(internal_server_error), NULL);
+    send_response(cli_sock, INTERNAL_SERVER_ERROR, "text/html", internal_server_error, strlen(internal_server_error), NULL);
     return;
   }
 
@@ -118,8 +110,7 @@ void send_file_response(int cli_sock, const char *file_path,
     if (buf == NULL) {
       fclose(fd);
       perror(">>>> file buffer allocation error");
-      send_response(cli_sock, INTERNAL_SERVER_ERROR, "text/html",
-                    internal_server_error, strlen(internal_server_error), NULL);
+      send_response(cli_sock, INTERNAL_SERVER_ERROR, "text/html", internal_server_error, strlen(internal_server_error), NULL);
       return;
     }
 
@@ -140,19 +131,33 @@ void send_file_response(int cli_sock, const char *file_path,
         fclose(fd);
         perror(">>>> file read error");
         send(cli_sock, "0\r\n\r\n", 5, 0); // end chunked transfer encoding
-        send_response(cli_sock, INTERNAL_SERVER_ERROR, "text/html",
-                      internal_server_error, strlen(internal_server_error),
-                      NULL); // send error response
+        send_response(cli_sock, INTERNAL_SERVER_ERROR, "text/html", internal_server_error, strlen(internal_server_error), NULL); // send error response
         return;
       }
 
       char chunk_header[16];
-      snprintf(chunk_header, sizeof(chunk_header), "%X\r\n",
-               (unsigned int)bytes_read);
-      send(cli_sock, chunk_header, strlen(chunk_header),
-           0); // send the chunk header -> size of each chunk in hexadecimal
-      send(cli_sock, buf, bytes_read, 0); // send the chunk data
-      send(cli_sock, "\r\n", 2, 0);       // send the chunk terminator
+      snprintf(chunk_header, sizeof(chunk_header), "%X\r\n", (unsigned int)bytes_read);
+
+      // Calculate total size for the concatenated buffer
+      size_t total_size = strlen(chunk_header) + bytes_read + 2; // 2 for "\r\n"
+      char *send_buf = (char *)malloc(total_size);
+      if (send_buf == NULL) {
+        free(buf);
+        fclose(fd);
+        perror(">>>> send buffer allocation error");
+        send(cli_sock, "0\r\n\r\n", 5, 0); // end chunked transfer encoding
+        send_response(cli_sock, INTERNAL_SERVER_ERROR, "text/html", internal_server_error, strlen(internal_server_error), NULL); // send error response
+        return;
+      }
+
+      // copy chunk header, chunk data, and chunk terminator into send_buf - used to avoid multiple sends
+      memcpy(send_buf, chunk_header, strlen(chunk_header));
+      memcpy(send_buf + strlen(chunk_header), buf, bytes_read);
+      memcpy(send_buf + strlen(chunk_header) + bytes_read, "\r\n", 2);
+
+      send(cli_sock, send_buf, total_size, 0);
+
+      free(send_buf);
     }
 
     send(cli_sock, "0\r\n\r\n", 5, 0); // end chunked transfer encoding
