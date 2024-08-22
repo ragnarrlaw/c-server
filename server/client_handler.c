@@ -12,7 +12,7 @@
 #define DOCUMENT_ROOT                                                          \
   "./public" // bit of a pickle here, the file path is taken from the executing
              // dir not the code containing dir, because that is how realpath()
-             // works
+             // works - currently it is set to start from the test dir, THIS ONLY HAPPENS IF THE RELATIVE PATH IS BEING USED
 
 void client_handler(void *args) {
 
