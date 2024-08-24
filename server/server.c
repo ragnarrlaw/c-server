@@ -18,6 +18,7 @@
 #define PORT "8080"
 #define BACKLOG 10
 #define NUM_THREADS 20
+#define QUEUE_LENGTH 20
 
 typedef struct Work {
   Queue *q;
@@ -86,7 +87,7 @@ void run_server() {
     exit(EXIT_FAILURE);
   }
 
-  Queue *q = new_queue(10);
+  Queue *q = new_queue(QUEUE_LENGTH);
   if (q == NULL) {
     perror(">>>> work buffer failed; closing socket...");
     close(sockfd);
@@ -179,6 +180,5 @@ void *thread_work(void *args) {
     }
     pthread_mutex_unlock(w->mutex);
   }
-  free(w);
   return NULL;
 }
