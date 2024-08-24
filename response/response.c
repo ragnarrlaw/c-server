@@ -9,18 +9,20 @@
 #include <time.h>
 #include <unistd.h>
 
+#define INDEX_FILE_NAME "index.html"
+
 const char *get_status_message(int code);
 const char *get_file_extension(const char *filename);
 const char *get_file_mime_type(const char *filename);
 
-char *not_found = "<!DOCTYPE html><html lang=\"en\"><head>"
+char not_found[] = "<!DOCTYPE html><html lang=\"en\"><head>"
                   "<meta charset = \"UTF-8\"/>"
                   "<meta name = \"viewport\" content = \"width=device-width, initial-scale=1.0\"/>"
                   "<title> Page Not Found </title> </head><body><p><b>"
                   "404</b> </p><hr/><p><b>Page Not Found</b></p>"
                   "</body></html>";
 
-char *internal_server_error =
+char internal_server_error[] =
     "<!DOCTYPE html><html lang = \"en\"><head>"
     "<meta charset = \"UTF-8\" />"
     "<meta name = \"viewport\" content = "
@@ -29,7 +31,7 @@ char *internal_server_error =
     "<body><p><b> 500 </b> </p><hr /><p> <b> "
     "Internal Server Error</b></p></body></html>";
 
-char *bad_request = "<!DOCTYPE html><html lang = \"en\"><head>"
+char bad_request[] = "<!DOCTYPE html><html lang = \"en\"><head>"
                     "<meta charset = \"UTF-8\"/>"
                     "<meta name = \"viewport\" content = \"width=device-width, initial-scale=1.0\" />"
                     "<title>Bad Request</title></head>"
@@ -50,8 +52,8 @@ void send_file_response(int cli_sock, const char *file_path, const char *headers
 
   // Check if the file is a directory
   if (S_ISDIR(s.st_mode)) {
-    char index_path[PATH_MAX];
-    snprintf(index_path, sizeof(index_path), "%s/index.html", file_path);
+    char index_path[strlen(file_path) + strlen(INDEX_FILE_NAME) + 2];
+    snprintf(index_path, PATH_MAX, "%s/%s", file_path, INDEX_FILE_NAME);
     if (stat(index_path, &s) == -1) {
       perror(">>>> index.html not found in directory");
       send_response(cli_sock, BAD_REQUEST, "text/html", bad_request, strlen(bad_request), NULL);
@@ -73,8 +75,8 @@ void send_file_response(int cli_sock, const char *file_path, const char *headers
       return;
     }
     if (S_ISDIR(s.st_mode)) {
-      char index_path[PATH_MAX];
-      snprintf(index_path, sizeof(index_path), "%s/index.html", real_path);
+      char index_path[strlen(file_path) + strlen(INDEX_FILE_NAME) + 2];
+      snprintf(index_path, sizeof(index_path), "%s/%s", real_path, INDEX_FILE_NAME);
       if (stat(index_path, &s) == -1) {
         perror(">>>> index.html not found in symlinked directory");
         send_response(cli_sock, BAD_REQUEST, "text/html", bad_request, strlen(bad_request), NULL);
@@ -105,7 +107,6 @@ void send_file_response(int cli_sock, const char *file_path, const char *headers
   }
 
   if (s.st_size > MAX_BUFFER_SIZE) {
-    printf("size: %ld\n", s.st_size);
     char *buf = (char *)malloc(CHUNK_SIZE);
     if (buf == NULL) {
       fclose(fd);
