@@ -22,7 +22,9 @@ Queue *new_queue(size_t buf_len) {
 
 void free_queue(Queue *ptr_queue) {
   if (ptr_queue != NULL) {
-    free(ptr_queue->data);
+    if (ptr_queue->data) {
+      free(ptr_queue->data);
+    }
     free(ptr_queue);
   }
 }
@@ -55,7 +57,7 @@ void iter(Queue *queue, void (*fn)(void *)) {
   if (is_empty(queue)) {
     printf(">>>> Queue is empty\n");
   } else {
-    printf("Queue: {");
+    printf(">>>> Queue: {");
     for (size_t i = queue->front; i != queue->rear;
          i = (i + 1) % queue->buf_len) {
       fn(queue->data[i]);
