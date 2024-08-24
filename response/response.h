@@ -3,7 +3,7 @@
 
 #include <unistd.h>
 
-#define MAX_BUFFER_SIZE 3072 // 3KBs
+#define MAX_BUFFER_SIZE 3072 // 3KBs RESPONSE_BUFFER_SIZE - CHUNK_SIZE
 #define RESPONSE_BUFFER_SIZE 4096 // 4KBs
 #define CHUNK_SIZE 1024 // 1KB
 
