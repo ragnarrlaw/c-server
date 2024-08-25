@@ -54,9 +54,7 @@ void send_file_response(int cli_sock, const char *file_path, const char *headers
   if (S_ISDIR(s.st_mode)) {
     char index_path[PATH_MAX];
     snprintf(index_path, sizeof(index_path), "%s/%s", file_path, INDEX_FILE_NAME);
-    printf("\n\n>>>> public is a directory: %s\n", index_path);
     if (stat(index_path, &s) == -1) {
-      perror(">>>> index.html not found in directory");
       send_response(cli_sock, BAD_REQUEST, "text/html", bad_request, strlen(bad_request), NULL);
       return;
     }
