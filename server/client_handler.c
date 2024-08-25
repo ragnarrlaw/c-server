@@ -16,8 +16,6 @@
 
 void client_handler(void *args) {
 
-  printf(">>>> from client handler: %d\n", *(int *)args);
-
   int cli_sock = *((int *)args);
   free(args);
   char buffer[BUFFER_SIZE];
@@ -34,7 +32,7 @@ void client_handler(void *args) {
     printf(">>>> client requested - %s\n", request->url);
 
     char req_path[PATH_MAX];
-    snprintf(req_path, PATH_MAX, "%s/%s", DOCUMENT_ROOT, request->url);
+    snprintf(req_path, PATH_MAX, "%s%s", DOCUMENT_ROOT, (strcmp(request->url, "/") == 0) ? "" : request->url);
 
     send_file_response(cli_sock, req_path, NULL);
 
