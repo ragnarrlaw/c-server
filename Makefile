@@ -11,7 +11,7 @@ build_server:
 	-lpthread
 
 run_server:
-	@gcc -Wall -g -o bin/server.out \
+	@gcc -o bin/server.out \
 	cmd/server/main.c \
 	server/server.h server/server.c \
 	server/client_handler.h server/client_handler.c \
